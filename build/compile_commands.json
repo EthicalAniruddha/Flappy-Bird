@@ -1,0 +1,8 @@
+[
+{
+  "directory": "/home/aniruddha/RayLibBasic/FlappyBird/build",
+  "command": "/usr/bin/gcc   -g -std=gnu11 -o CMakeFiles/app.dir/src/main.c.o -c /home/aniruddha/RayLibBasic/FlappyBird/src/main.c",
+  "file": "/home/aniruddha/RayLibBasic/FlappyBird/src/main.c",
+  "output": "CMakeFiles/app.dir/src/main.c.o"
+}
+]
