@@ -1,0 +1,4 @@
+/home/aniruddha/RayLibBasic/FlappyBird/build-windows/CMakeFiles/app.dir
+/home/aniruddha/RayLibBasic/FlappyBird/build-windows/CMakeFiles/run.dir
+/home/aniruddha/RayLibBasic/FlappyBird/build-windows/CMakeFiles/edit_cache.dir
+/home/aniruddha/RayLibBasic/FlappyBird/build-windows/CMakeFiles/rebuild_cache.dir

@@ -1,4 +1,4 @@
-#include "raylib.h"
+#include <raylib.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <math.h>
@@ -6,6 +6,7 @@
 #define MAX_PIPES 5
 #define GRAVITY 1000.0f
 #define JUMP_FORCE -375.0f
+#define SOUND_INSTANCES 3
 
 Vector2 centerText(const char *text, int fontSize, int screenWidth, int screenHeight) {
     Vector2 position;
@@ -29,27 +30,40 @@ int main(void) {
     Texture2D midground = LoadTexture("assets/parallax/moon_mid.png");
     Texture2D foreground = LoadTexture("assets/parallax/moon_front.png");
 
+    Texture2D gameOverImg = LoadTexture("assets/sprites/gameOver.png");
+
     // Load sounds
     InitAudioDevice();
 
     Music bgMusic = LoadMusicStream("assets/sound/bgSound/bg.mp3");
     bgMusic.looping = true;
     
-    SetMusicVolume(bgMusic, 0.05f);
+    SetMusicVolume(bgMusic, 0.075f);
     PlayMusicStream(bgMusic);
 
     // jump sounds
-    Sound jumpSounds[6];
-    jumpSounds[0] = LoadSound("assets/sound/jumpSounds/bamba.wav");
-    jumpSounds[1] = LoadSound("assets/sound/jumpSounds/bumba.wav");
-    jumpSounds[2] = LoadSound("assets/sound/jumpSounds/dumba.wav");
-    jumpSounds[3] = LoadSound("assets/sound/jumpSounds/humba.wav");
-    jumpSounds[4] = LoadSound("assets/sound/jumpSounds/kamba.wav");
-    jumpSounds[5] = LoadSound("assets/sound/jumpSounds/ramba.wav");
+    Sound jumpSounds[6][SOUND_INSTANCES];
+    for(int i = 0; i < 6; ++i) {
+        const char *soundFilePath[6] = {
+            "assets/sound/jumpSounds/bamba.wav",
+            "assets/sound/jumpSounds/bumba.wav",
+            "assets/sound/jumpSounds/dumba.wav",
+            "assets/sound/jumpSounds/humba.wav",
+            "assets/sound/jumpSounds/kamba.wav",
+            "assets/sound/jumpSounds/ramba.wav"
+        };
 
-    for(int i = 0; i < 5; ++i) {
-        SetSoundVolume(jumpSounds[i], 1.0f);
+        for(int j = 0; j < SOUND_INSTANCES; ++j) {
+            jumpSounds[i][j] = LoadSound(soundFilePath[i]);
+            SetSoundVolume(jumpSounds[i][j], 1.0f);
+        }
     }
+
+    int currentSound = 0;
+
+    // Game over sound
+    Sound gameOverSound = LoadSound("assets/sound/gameOver/gameOver.wav");
+    SetSoundVolume(gameOverSound, 1.0f);
 
     float scrollingBack= 0.0f;
     float scrollingMid = 0.0f;
@@ -60,6 +74,7 @@ int main(void) {
     // game started
     bool gameStarted = false;
     bool gameOver = false;
+    bool gameOverSoundPlayed = false;
 
     // for the start menu
     Vector2 txtPos = centerText("Press ENTER to START", 40, screenWidth, screenHeight);
@@ -95,10 +110,14 @@ int main(void) {
     float mgScale = (float)screenHeight / midground.height;
     float fgScale = (float)screenHeight / foreground.height;
 
+    // Restart button
+    Rectangle restartBtn = {screenWidth/2-100, screenHeight/2+100, 200, 60};
+
     // Game loop
     while(!WindowShouldClose()) {
 
         UpdateMusicStream(bgMusic);
+        Vector2 mousePos = GetMousePosition();
 
         // run if gameStarted == true
         if(gameStarted && !gameOver) {
@@ -130,7 +149,13 @@ int main(void) {
                 Rectangle topPipe = {pipeX[i], 0, pipeWidth, gapY[i] - gapSize/2};
                 Rectangle bottomPipe = {pipeX[i], gapY[i] + gapSize/2, pipeWidth, screenHeight - (gapY[i] + gapSize/2)};
 
-                if(CheckCollisionRecs(birdColRect,topPipe) || CheckCollisionRecs(birdColRect, bottomPipe)) gameOver = true;
+                if(CheckCollisionRecs(birdColRect,topPipe) || CheckCollisionRecs(birdColRect, bottomPipe)) {
+                    gameOver = true;
+                    if(!gameOverSoundPlayed) {
+                        PlaySound(gameOverSound);
+                        gameOverSoundPlayed = true;
+                    }
+                }
             }
 
             // score logic
@@ -142,7 +167,13 @@ int main(void) {
             }
 
             // collision of top and bottom of our screen
-            if(bird.y + birdTexture.height/2 >= screenHeight || bird.y - birdTexture.height/2 <= 0) gameOver = true;
+            if(bird.y + birdTexture.height/2 >= screenHeight || bird.y - birdTexture.height/2 <= 0) {
+                gameOver = true;
+                if(!gameOverSoundPlayed) {
+                    PlaySound(gameOverSound);
+                    gameOverSoundPlayed = true;
+                }
+            }
 
             // parallax?
             float dt = GetFrameTime();
@@ -170,16 +201,23 @@ int main(void) {
 
             // pick random index
             int randIdx = GetRandomValue(0, 5);
-            PlaySound(jumpSounds[randIdx]);
+            PlaySound(jumpSounds[randIdx][currentSound]);
+            currentSound = (currentSound+1)%SOUND_INSTANCES;
         }
 
         // enter -> game start
         if(IsKeyPressed(KEY_ENTER)) gameStarted = true;
 
         // r -> restart
-        if(gameOver && IsKeyPressed(KEY_R)) {
+        if(gameOver && IsKeyPressed(KEY_R) || (CheckCollisionPointRec(mousePos, restartBtn) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON))) {
+
+            if(IsSoundPlaying(gameOverSound)) {
+                StopSound(gameOverSound);
+            }
+
             gameOver = false;
             gameStarted = false;
+            gameOverSoundPlayed = false;
             bird.y =  screenHeight/2-100;
             birdVel = 0;
             score = 0;
@@ -233,8 +271,44 @@ int main(void) {
                 }
 
                 if(gameOver) {
-                    Vector2 gameOverTxtPos = centerText("GAME OVER! Press R to Restart", 40, screenWidth, screenHeight);
-                    DrawText("GAME OVER! Press R to Restart", gameOverTxtPos.x, gameOverTxtPos.y, 40, RED);
+                    // Draw semi-transparent dark rectangle
+                    DrawRectangle(0,0,screenWidth,screenHeight, (Color){0,0,0,180});
+
+                    // Draw game over image
+                    int imgX = screenWidth/2 - gameOverImg.width/2;
+                    int imgY = screenHeight/2 - gameOverImg.height/2;
+
+                    DrawTexture(gameOverImg, imgX, imgY, birdAlien);
+
+                    // score draw ig
+                    char scoreTxt[50];
+                    sprintf(scoreTxt, "Score: %d", score);
+                    int scoreWidth = MeasureText(scoreTxt, 40);
+
+                    // restart btn
+                    Color btnColor = CheckCollisionPointRec(mousePos, restartBtn) ? DARKGREEN : GREEN;
+                    DrawRectangleRec(restartBtn, btnColor);
+                    DrawRectangleLinesEx(restartBtn, 3, WHITE);
+
+                    const char *buttonTxt = "RESTART";
+                    int btnTextWidth = MeasureText(buttonTxt, 30);
+                    DrawText(
+                        buttonTxt,
+                        restartBtn.x + restartBtn.width/2 - btnTextWidth/2,
+                        restartBtn.y + restartBtn.height/2 - 15,
+                        30,
+                        WHITE
+                    );
+
+                    const char *looseTxt = "Press R or Click Button";
+                    int looseTxtWidth = MeasureText(looseTxt, 20);
+                    DrawText(
+                        looseTxt,
+                        screenWidth/2 - looseTxtWidth/2,
+                        restartBtn.y + 80,
+                        20,
+                        LIGHTGRAY
+                    );
                 }
             } else {
                 DrawText("Press ENTER to START", txtPos.x, txtPos.y, 40, RAYWHITE);
@@ -249,8 +323,14 @@ int main(void) {
     }
 
     UnloadMusicStream(bgMusic);
-    for(int i = 0; i < 6; ++i) UnloadSound(jumpSounds[i]);
+    for(int i = 0; i < 6; ++i) {
+        for(int j = 0; j < SOUND_INSTANCES; ++j) {
+            UnloadSound(jumpSounds[i][j]);
+        }
+    }
+    UnloadSound(gameOverSound);
     CloseAudioDevice();
+    UnloadTexture(gameOverImg);
     UnloadTexture(background);
     UnloadTexture(midground);
     UnloadTexture(foreground);
