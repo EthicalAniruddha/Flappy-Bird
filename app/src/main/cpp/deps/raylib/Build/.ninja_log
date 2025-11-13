@@ -1,0 +1,10 @@
+# ninja log v6
+3	790	1762955393140698001	raylib/CMakeFiles/raylib.dir/rshapes.c.o	4a3c213a6a3cbd4f
+790	1008	1762955393928680057	raylib/CMakeFiles/raylib.dir/utils.c.o	834ca5e1c927b4c0
+1008	1206	1762955394144675138	raylib/CMakeFiles/raylib.dir/home/aniruddha/Android/ndk/25.2.9519653/sources/android/native_app_glue/android_native_app_glue.c.o	b423f0086a829fc9
+4	2234	1762955393140698001	raylib/CMakeFiles/raylib.dir/rtext.c.o	afdf01a122d62c6d
+3	3853	1762955393140698001	raylib/CMakeFiles/raylib.dir/rcore.c.o	2322597b8db727e8
+3	7190	1762955393140698001	raylib/CMakeFiles/raylib.dir/rmodels.c.o	fabc1122a425597
+4	7202	1762955393140698001	raylib/CMakeFiles/raylib.dir/rtextures.c.o	9bfbe3c5019669cd
+2	9757	1762955393140698001	raylib/CMakeFiles/raylib.dir/raudio.c.o	b3ec9146210b05b7
+9757	9793	1762955402892475925	raylib/libraylib.a	5ab4290fb2e85a4c
